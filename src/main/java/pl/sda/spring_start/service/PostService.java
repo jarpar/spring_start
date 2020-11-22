@@ -1,5 +1,6 @@
 package pl.sda.spring_start.service;
 
+import javafx.geometry.Pos;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,11 +17,25 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class PostService {
     @Autowired
     PostRepository postRepository;
+
+    public boolean addLike(int postId, User follower) {
+        Optional<Post> postToLikeOptional = getPostById(postId);
+        if (postToLikeOptional.isPresent()) {
+            Post postToLike = postToLikeOptional.get();
+            Set<User> currentLikes = postToLike.getLikes();
+            boolean returnValue = currentLikes.add(follower);
+            postToLike.setLikes(currentLikes);
+            postRepository.save(postToLike);
+            return returnValue;
+        }
+        return false;
+    }
 
     public boolean editPost(int postId, PostDto postDto) {
         if (getPostById(postId).isPresent()) {
@@ -46,10 +61,11 @@ public class PostService {
     public List<Post> getAllPosts() {
         return postRepository.findAll(Sort.by(Sort.Direction.DESC, "dateAdded"));
     }
-    public List<Integer> generatePagesIndexes(List<Post> posts){
+
+    public List<Integer> generatePagesIndexes(List<Post> posts) {
         int noOfPages = (getAllPosts().size() / 5) + 1;
         List<Integer> pagesIndexes = new ArrayList<>();
-        for (int i = 0; i < noOfPages; i++){
+        for (int i = 0; i < noOfPages; i++) {
             pagesIndexes.add(i + 1);
         }
         return pagesIndexes;
