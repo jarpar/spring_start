@@ -27,10 +27,9 @@ public class Post {
             fetch = FetchType.EAGER
     )
     private User author;
-
-    @ManyToMany(
-            fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinTable(name = "likes",
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinTable(
+            name = "likes",
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
