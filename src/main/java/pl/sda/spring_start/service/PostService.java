@@ -1,17 +1,19 @@
 package pl.sda.spring_start.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
-import pl.sda.spring_start.model.Category;
-import pl.sda.spring_start.model.Post;
-import pl.sda.spring_start.model.PostDto;
-import pl.sda.spring_start.model.User;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import pl.sda.spring_start.model.*;
+import pl.sda.spring_start.repository.CommentRepository;
 import pl.sda.spring_start.repository.PostRepository;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +23,19 @@ import java.util.Set;
 @Service
 public class PostService {
     @Autowired
-    PostRepository postRepository;
+    private PostRepository postRepository;
+    @Autowired
+    private CommentRepository commentRepository;
+
+    public void addCommentToPostByUser(CommentDto commentDto, Post post, User user){
+        commentRepository.save(new Comment(commentDto.getMessage(), user, post));
+    }
+    public List<Comment> getAllCommentsForPostOrderByDateAddedDesc(Post post){
+        return commentRepository.findAllByRootPost(post, Sort.by(Sort.Direction.DESC, "dateAdded"));
+    }
+    public void deleteCommentById(int commentId){       // przekazywane z a href
+        commentRepository.deleteById(commentId);
+    }
 
     public boolean addDislike(int postId, User hater){
         Optional<Post> postToDislikeOptional = getPostById(postId);
@@ -77,7 +91,20 @@ public class PostService {
         postRepository.deleteById(postId);
     }
 
-    public void addPost(String title, String content, Category category, User author) {
+    // obsługa plików zdjęciowych
+    private final String UPLOAD_DIR = "./upload/";
+
+    public void addPost(String title, String content, Category category, User author, MultipartFile imagePath) {
+        // znormalizowana ścieżka do pliku zdjęciowego
+        String fileName = StringUtils.cleanPath(imagePath.getOriginalFilename());
+        System.out.println("Image path: " + fileName);
+        // zapis pliku zdjęciowego
+        try {
+            Path path = Paths.get(UPLOAD_DIR + fileName);
+            Files.copy(imagePath.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         postRepository.save(new Post(title, content, LocalDateTime.now(), category, author));
     }
 
@@ -125,4 +152,14 @@ public class PostService {
     public Optional<Post> getPostById(int postId) {
         return postRepository.findById(postId);
     }
+
+    public List<Post> getAllPostsOrderByResult(String sortDirection, int pageIndex){
+        Pageable pageable = PageRequest.of(pageIndex, 5);
+        if(sortDirection.equals("ASC")){
+            return postRepository.findAllSortedByResultASC();
+        } else {
+            return postRepository.findAllSortedByResultDESC();
+        }
+    }
+
 }
